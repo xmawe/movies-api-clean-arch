@@ -1,0 +1,8 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "DefaultConnection": "Server=JADA-S-PC\\SQLEXPRESS;Database=MovieDb;Trusted_Connection=true;TrustServerCertificate=true;Encrypt=false;Connection Timeout=30"
+    }
+}
