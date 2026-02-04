@@ -22,12 +22,12 @@ public class UpdateMovieCommandHandler : IRequestHandler<UpdateMovieCommand, Mov
 
         if (movie == null)
             return null;
-
-        movie.Title = request.Movie.Title;
-        movie.Director = request.Movie.Director;
-        movie.Genre = request.Movie.Genre;
-        movie.ReleaseYear = request.Movie.ReleaseYear;
-        movie.Rating = request.Movie.Rating;
+        
+        movie.UpdateTitle(request.Movie.Title);
+        movie.UpdateDirector(request.Movie.Director);
+        movie.UpdateGenre(request.Movie.Genre);
+        movie.UpdateReleaseYear(request.Movie.ReleaseYear);
+        movie.UpdateRating(request.Movie.Rating);
 
         await _context.SaveChangesAsync(cancellationToken);
 

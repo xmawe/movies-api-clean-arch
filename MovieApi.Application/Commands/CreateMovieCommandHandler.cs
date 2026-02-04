@@ -16,14 +16,13 @@ public class CreateMovieCommandHandler : IRequestHandler<CreateMovieCommand, Mov
 
     public async Task<MovieDto> Handle(CreateMovieCommand request, CancellationToken cancellationToken)
     {
-        var movie = new Movie
-        {
-            Title = request.Movie.Title,
-            Director = request.Movie.Director,
-            Genre = request.Movie.Genre,
-            ReleaseYear = request.Movie.ReleaseYear,
-            Rating = request.Movie.Rating
-        };
+        var movie = Movie.Create(
+            request.Movie.Title,
+            request.Movie.Director,
+            request.Movie.Genre,
+            request.Movie.ReleaseYear,
+            request.Movie.Rating
+        );
 
         _context.Movies.Add(movie);
         await _context.SaveChangesAsync(cancellationToken);

@@ -27,11 +27,21 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Rating).HasPrecision(3, 1).IsRequired();
         });
 
-        // Seed data
+        // Seed data using the factory method with Id
         modelBuilder.Entity<Movie>().HasData(
-            new Movie { Id = 1, Title = "The Shawshank Redemption", Director = "Frank Darabont", Genre = "Drama", ReleaseYear = 1994, Rating = 9.3m },
-            new Movie { Id = 2, Title = "The Godfather", Director = "Francis Ford Coppola", Genre = "Crime", ReleaseYear = 1972, Rating = 9.2m },
-            new Movie { Id = 3, Title = "The Dark Knight", Director = "Christopher Nolan", Genre = "Action", ReleaseYear = 2008, Rating = 9.0m }
+            Movie.CreateWithId(1, "The Shawshank Redemption", "Frank Darabont", "Drama", 1994, 9.3m),
+            Movie.CreateWithId(2, "The Godfather", "Francis Ford Coppola", "Crime", 1972, 9.2m),
+            Movie.CreateWithId(3, "The Dark Knight", "Christopher Nolan", "Action", 2008, 9.0m)
         );
+    }
+
+    private Movie CreateMovieForSeed(int id, string title, string director, string genre, int releaseYear, decimal rating)
+    {
+        var movie = Movie.Create(title, director, genre, releaseYear, rating);
+        
+        var idProperty = typeof(Movie).GetProperty(nameof(Movie.Id));
+        idProperty?.SetValue(movie, id);
+        
+        return movie;
     }
 }
