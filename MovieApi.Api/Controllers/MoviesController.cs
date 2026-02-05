@@ -23,6 +23,25 @@ public class MoviesController : ControllerBase
         var movies = await _mediator.Send(new GetAllMoviesQuery());
         return Ok(movies);
     }
+    
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<MovieDto>>> Search([FromQuery] string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(keyword))
+        {
+            return BadRequest("Keyword cannot be empty");
+        }
+
+        var movies = await _mediator.Send(new SearchMoviesQuery(keyword));
+        return Ok(movies);
+    }
+    
+    [HttpGet("stats")]
+    public async Task<ActionResult<MovieStatsDto>> GetStats()
+    {
+        var stats = await _mediator.Send(new GetMovieStatsQuery());
+        return Ok(stats);
+    }
 
     [HttpPost]
     public async Task<ActionResult<MovieDto>> Create([FromBody] MovieDto movieDto)
