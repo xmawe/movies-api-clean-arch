@@ -17,7 +17,7 @@ public class GetMovieStatsQueryHandler : IRequestHandler<GetMovieStatsQuery, Mov
 
     public async Task<MovieStatsDto> Handle(GetMovieStatsQuery request, CancellationToken cancellationToken)
     {
-        var movies = await _context.Movies.ToListAsync(cancellationToken);
+        var movies = await _context.Movies.Where(m => m.UserId == request.UserId).ToListAsync(cancellationToken);
 
         if (!movies.Any())
         {

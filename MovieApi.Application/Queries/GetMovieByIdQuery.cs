@@ -3,4 +3,4 @@ using MovieApi.Application.DTOs;
 
 namespace MovieApi.Application.Queries;
 
-public record GetMovieByIdQuery(int Id) : IRequest<MovieDto?>;
+public record GetMovieByIdQuery(int MovieId, int UserId) : IRequest<MovieDto?>;

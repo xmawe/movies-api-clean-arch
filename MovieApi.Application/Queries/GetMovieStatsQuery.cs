@@ -3,4 +3,4 @@ using MovieApi.Application.DTOs;
 
 namespace MovieApi.Application.Queries;
 
-public record GetMovieStatsQuery : IRequest<MovieStatsDto>;
+public record GetMovieStatsQuery(int UserId) : IRequest<MovieStatsDto>;

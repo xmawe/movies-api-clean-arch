@@ -1,103 +1,123 @@
 ﻿using MediatR;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using MovieApi.Application.Queries;
+using MovieApi.Application.Commands.Auth;
+using MovieApi.Application.DTOs;
+using System.Net;
+using System.Text.Json;
 
-namespace MovieApi.Functions.TimerTriggers;
+namespace MovieApi.Functions.HttpTriggers;
 
-public class MovieBackgroundJobs
+public class AuthFunctions
 {
-    private readonly ILogger<MovieBackgroundJobs> _logger;
+    private readonly ILogger<AuthFunctions> _logger;
     private readonly IMediator _mediator;
 
-    public MovieBackgroundJobs(ILogger<MovieBackgroundJobs> logger, IMediator mediator)
+    public AuthFunctions(ILogger<AuthFunctions> logger, IMediator mediator)
     {
         _logger = logger;
         _mediator = mediator;
     }
-    
-    
-    /// <summary>
-    /// Check for data inconsistencies
-    /// Runs every 6 hours
-    /// </summary>
-    [Function("DataQualityCheck")]
-    public async Task DataQualityCheck([TimerTrigger("0 0 */6 * * *")] TimerInfo timer)
+
+    /// URL: POST http://localhost:7071/api/auth/register
+    [Function("Register")]
+    public async Task<HttpResponseData> Register(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "auth/register")] HttpRequestData req)
     {
-        _logger.LogInformation($"Data quality check started at: {DateTime.UtcNow}");
+        _logger.LogInformation("Register function triggered");
 
         try
         {
-            var movies = await _mediator.Send(new GetAllMoviesQuery());
-
-            // Perform data quality checks
-            var moviesWithoutTitle = movies.Count(m => string.IsNullOrWhiteSpace(m.Title));
-            var moviesWithInvalidYear = movies.Count(m => m.ReleaseYear < 1888 || m.ReleaseYear > DateTime.UtcNow.Year + 5);
-            
-            _logger.LogInformation("Data Quality Report:");
-            _logger.LogInformation($"- Total Movies: {movies.Count()}");
-            _logger.LogInformation($"- Movies without title: {moviesWithoutTitle}");
-            _logger.LogInformation($"- Movies with invalid year: {moviesWithInvalidYear}");
-
-            if (moviesWithoutTitle > 0 || moviesWithInvalidYear > 0)
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var request = JsonSerializer.Deserialize<RegisterRequest>(requestBody, new JsonSerializerOptions
             {
-                _logger.LogWarning($"Found {moviesWithoutTitle + moviesWithInvalidYear} data quality issues!");
-                // Send alert, create ticket, etc.
-            }
-            else
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (request == null)
             {
-                _logger.LogInformation("✓ All data quality checks passed!");
+                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badResponse.WriteAsJsonAsync(new { Error = "Invalid request data" });
+                return badResponse;
             }
+
+            var command = new RegisterCommand(request.Username, request.Email, request.Password);
+            var result = await _mediator.Send(command);
+
+            _logger.LogInformation($"User registered successfully: {result.Username}");
+
+            var response = req.CreateResponse(HttpStatusCode.Created);
+            await response.WriteAsJsonAsync(result);
+            return response;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Registration failed - user already exists");
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(new { Error = ex.Message });
+            return badResponse;
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Registration failed - validation error");
+            var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            await badResponse.WriteAsJsonAsync(new { Error = ex.Message });
+            return badResponse;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during data quality check");
+            _logger.LogError(ex, "Error during registration");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteAsJsonAsync(new { Error = "Failed to register user" });
+            return errorResponse;
         }
     }
 
-    /// <summary>
-    /// Sync with external movie database API
-    /// Runs every day at 3:00 AM UTC
-    /// </summary>
-    [Function("SyncExternalMovieData")]
-    public async Task SyncExternalMovieData([TimerTrigger("0 0 3 * * *")] TimerInfo timer)
+    /// URL: POST http://localhost:7071/api/auth/login
+    [Function("Login")]
+    public async Task<HttpResponseData> Login(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "auth/login")] HttpRequestData req)
     {
-        _logger.LogInformation($"External movie data sync started at: {DateTime.UtcNow}");
+        _logger.LogInformation("Login function triggered");
 
         try
         {
-            // Get current movies from database
-            var existingMovies = await _mediator.Send(new GetAllMoviesQuery());
-            _logger.LogInformation($"Current movies in database: {existingMovies.Count()}");
+            var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            var request = JsonSerializer.Deserialize<LoginRequest>(requestBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
-            // A real implementation here
+            if (request == null)
+            {
+                var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+                await badResponse.WriteAsJsonAsync(new { Error = "Invalid request data" });
+                return badResponse;
+            }
 
-            _logger.LogInformation("External sync completed successfully!");
+            var command = new LoginCommand(request.Email, request.Password);
+            var result = await _mediator.Send(command);
+
+            _logger.LogInformation($"User logged in successfully: {result.Username}");
+
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(result);
+            return response;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Login failed - invalid credentials");
+            var unauthorizedResponse = req.CreateResponse(HttpStatusCode.Unauthorized);
+            await unauthorizedResponse.WriteAsJsonAsync(new { Error = ex.Message });
+            return unauthorizedResponse;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during external sync");
-        }
-    }
-
-    /// <summary>
-    /// Test timer - fires every 30 seconds for testing
-    /// </summary>
-    [Function("TestTimer")]
-    public async Task TestTimer([TimerTrigger("*/30 * * * * *")] TimerInfo timer)
-    {
-        _logger.LogInformation($"------- Test timer fired at: {DateTime.UtcNow:HH:mm:ss}");
-
-        try
-        {
-            // Quick test: get movie count
-            var movies = await _mediator.Send(new GetAllMoviesQuery());
-            _logger.LogInformation($"   Current movie count: {movies.Count()}");
-            _logger.LogInformation($"   Next run: {timer.ScheduleStatus?.Next:HH:mm:ss}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in test timer");
+            _logger.LogError(ex, "Error during login");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteAsJsonAsync(new { Error = "Failed to login" });
+            return errorResponse;
         }
     }
 }

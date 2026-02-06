@@ -2,19 +2,20 @@
 
 public class Movie
 {
-    // Private setters - encapsulation
     public int Id { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string Director { get; private set; } = string.Empty;
     public string Genre { get; private set; } = string.Empty;
     public int ReleaseYear { get; private set; }
     public decimal Rating { get; private set; }
+    
+    // Add User relationship
+    public int UserId { get; private set; }
+    public User User { get; private set; } = null!;
 
-    // Private parameterless constructor for EF Core
     private Movie() { }
 
-    // Factory method for creating new movies
-    public static Movie Create(string title, string director, string genre, int releaseYear, decimal rating)
+    public static Movie Create(string title, string director, string genre, int releaseYear, decimal rating, int userId)
     {
         ValidateTitle(title);
         ValidateDirector(director);
@@ -28,18 +29,11 @@ public class Movie
             Director = director,
             Genre = genre,
             ReleaseYear = releaseYear,
-            Rating = rating
+            Rating = rating,
+            UserId = userId
         };
     }
-    
-    public static Movie CreateWithId(int id, string title, string director, string genre, int releaseYear, decimal rating)
-    {
-        var movie = Create(title, director, genre, releaseYear, rating);
-        movie.Id = id;
-        return movie;
-    }
 
-    // Methods to update properties with validation
     public void UpdateTitle(string newTitle)
     {
         ValidateTitle(newTitle);
@@ -70,12 +64,11 @@ public class Movie
         Rating = newRating;
     }
 
-    // Private validation methods - business rules
+    // Keep all your existing validation methods...
     private static void ValidateTitle(string title)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("Title cannot be empty", nameof(title));
-        
         if (title.Length > 200)
             throw new ArgumentException("Title cannot exceed 200 characters", nameof(title));
     }
@@ -84,7 +77,6 @@ public class Movie
     {
         if (string.IsNullOrWhiteSpace(director))
             throw new ArgumentException("Director cannot be empty", nameof(director));
-        
         if (director.Length > 100)
             throw new ArgumentException("Director name cannot exceed 100 characters", nameof(director));
     }
@@ -93,7 +85,6 @@ public class Movie
     {
         if (string.IsNullOrWhiteSpace(genre))
             throw new ArgumentException("Genre cannot be empty", nameof(genre));
-        
         if (genre.Length > 50)
             throw new ArgumentException("Genre cannot exceed 50 characters", nameof(genre));
     }
@@ -102,7 +93,6 @@ public class Movie
     {
         const int firstMovieYear = 1888;
         int currentYear = DateTime.Now.Year;
-
         if (releaseYear < firstMovieYear || releaseYear > currentYear + 5)
             throw new ArgumentException(
                 $"Release year must be between {firstMovieYear} and {currentYear + 5}", 

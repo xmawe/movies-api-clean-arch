@@ -16,9 +16,10 @@ public class GetMovieByIdQueryHandler : IRequestHandler<GetMovieByIdQuery, Movie
 
     public async Task<MovieDto?> Handle(GetMovieByIdQuery request, CancellationToken cancellationToken)
     {
-        return await _context.Movies
-            .Where(m => m.Id == request.Id)
-            .Select(m => new MovieDto(
+        var movie = await _context.Movies
+            .Where(m => m.Id == request.MovieId && m.UserId == request.UserId)
+            .Select(m => new MovieDto
+            (
                 m.Id,
                 m.Title,
                 m.Director,
@@ -27,5 +28,7 @@ public class GetMovieByIdQueryHandler : IRequestHandler<GetMovieByIdQuery, Movie
                 m.Rating
             ))
             .FirstOrDefaultAsync(cancellationToken);
+
+        return movie;
     }
 }

@@ -1,10 +1,11 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using MovieApi.Application.DTOs;
 using MovieApi.Application.Interfaces;
 
 namespace MovieApi.Application.Commands;
 
-public class UpdateMovieCommandHandler : IRequestHandler<UpdateMovieCommand, MovieDto?>
+public class UpdateMovieCommandHandler : IRequestHandler<UpdateMovieCommand, MovieDto>
 {
     private readonly IApplicationDbContext _context;
 
@@ -13,16 +14,18 @@ public class UpdateMovieCommandHandler : IRequestHandler<UpdateMovieCommand, Mov
         _context = context;
     }
 
-    public async Task<MovieDto?> Handle(UpdateMovieCommand request, CancellationToken cancellationToken)
+    public async Task<MovieDto> Handle(UpdateMovieCommand request, CancellationToken cancellationToken)
     {
-        var movie = await _context.Movies.FindAsync(
-            new object[] { request.Id },
-            cancellationToken
-        );
+        var movie = await _context.Movies
+            .FirstOrDefaultAsync(m => m.Id == request.MovieId, cancellationToken);
 
         if (movie == null)
-            return null;
-        
+            throw new KeyNotFoundException($"Movie with ID {request.MovieId} not found");
+
+        // Verify ownership
+        if (movie.UserId != request.UserId)
+            throw new UnauthorizedAccessException("You do not have permission to update this movie");
+
         movie.UpdateTitle(request.Movie.Title);
         movie.UpdateDirector(request.Movie.Director);
         movie.UpdateGenre(request.Movie.Genre);
@@ -31,7 +34,8 @@ public class UpdateMovieCommandHandler : IRequestHandler<UpdateMovieCommand, Mov
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new MovieDto(
+        return new MovieDto
+        (
             movie.Id,
             movie.Title,
             movie.Director,

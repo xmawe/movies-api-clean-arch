@@ -5,7 +5,7 @@ using MovieApi.Application.Interfaces;
 
 namespace MovieApi.Application.Queries;
 
-public class GetAllMoviesQueryHandler : IRequestHandler<GetAllMoviesQuery, IEnumerable<MovieDto>>
+public class GetAllMoviesQueryHandler : IRequestHandler<GetAllMoviesQuery, List<MovieDto>>
 {
     private readonly IApplicationDbContext _context;
 
@@ -14,10 +14,12 @@ public class GetAllMoviesQueryHandler : IRequestHandler<GetAllMoviesQuery, IEnum
         _context = context;
     }
 
-    public async Task<IEnumerable<MovieDto>> Handle(GetAllMoviesQuery request, CancellationToken cancellationToken)
+    public async Task<List<MovieDto>> Handle(GetAllMoviesQuery request, CancellationToken cancellationToken)
     {
-        var movies = await _context.Movies
-            .Select(m => new MovieDto(
+        return await _context.Movies
+            .Where(m => m.UserId == request.UserId)  // Filter by user
+            .Select(m => new MovieDto
+            (
                 m.Id,
                 m.Title,
                 m.Director,
@@ -26,7 +28,5 @@ public class GetAllMoviesQueryHandler : IRequestHandler<GetAllMoviesQuery, IEnum
                 m.Rating
             ))
             .ToListAsync(cancellationToken);
-
-        return movies;
     }
 }

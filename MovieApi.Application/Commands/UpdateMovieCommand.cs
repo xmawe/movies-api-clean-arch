@@ -3,4 +3,4 @@ using MovieApi.Application.DTOs;
 
 namespace MovieApi.Application.Commands;
 
-public record UpdateMovieCommand(int Id, UpdateMovieDto Movie) : IRequest<MovieDto?>;
+public record UpdateMovieCommand(int MovieId, UpdateMovieDto Movie, int UserId) : IRequest<MovieDto>;

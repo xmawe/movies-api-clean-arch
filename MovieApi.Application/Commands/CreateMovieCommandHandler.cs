@@ -21,13 +21,15 @@ public class CreateMovieCommandHandler : IRequestHandler<CreateMovieCommand, Mov
             request.Movie.Director,
             request.Movie.Genre,
             request.Movie.ReleaseYear,
-            request.Movie.Rating
+            request.Movie.Rating,
+            request.UserId  // Pass userId from command
         );
 
         _context.Movies.Add(movie);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new MovieDto(
+        return new MovieDto
+        (
             movie.Id,
             movie.Title,
             movie.Director,

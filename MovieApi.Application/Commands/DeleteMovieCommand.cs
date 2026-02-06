@@ -2,4 +2,4 @@
 
 namespace MovieApi.Application.Commands;
 
-public record DeleteMovieCommand(int Id) : IRequest<bool>;
+public record DeleteMovieCommand(int MovieId, int UserId) : IRequest<Unit>;

@@ -21,6 +21,8 @@ public class SearchMoviesQueryHandler : IRequestHandler<SearchMoviesQuery, IEnum
 
         var movies = await _context.Movies
             .Where(m => 
+                m.UserId == request.UserId)
+            .Where(m => 
                 m.Title.ToLower().Contains(searchTerm) ||
                 m.Director.ToLower().Contains(searchTerm) ||
                 m.Genre.ToLower().Contains(searchTerm) ||
